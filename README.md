@@ -11,5 +11,6 @@ positional arguments:
 optional arguments:
   -h, --help            show this help message and exit<br/>
   --author              Who am I? Why I made this?<br/>
+  --multi               mfa login<br/>
   -o OUTPUT, --output OUTPUT<br/>
                         Output path of file downloaded
