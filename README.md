@@ -1,6 +1,7 @@
 # scrapdown
 This program downloads from a specified url that is only accessible when logged in.
 
+![scrapdownscreenshot](https://github.com/clintcan/scrapdown/raw/master/scrapdown.png)
 
 usage: scrapdown.py [-h] [--author] [-o OUTPUT] url url2<br/>
 
