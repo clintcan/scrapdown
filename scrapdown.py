@@ -94,10 +94,6 @@ def main():
     print()
     print_banner()
 
-    if len(sys.argv) > 1 and sys.argv[1] == '--author':
-        get_author()
-        quit()
-
     parser = argparse.ArgumentParser()
     parser.add_argument("url", help="URL to look into")
     parser.add_argument("url2", help="URL to download")
@@ -110,6 +106,7 @@ def main():
     
     if args.author:
         get_author()
+        quit()
 
     try:
         my_session = requests.session()
@@ -123,13 +120,12 @@ def main():
         forms = soup.findAll('form')
         formcount = len(forms)
 
-        temp = ''
-
         if formcount == 0 and runsqlmap == False:
             print("URL has no detected forms")
             quit()
 
         if formcount == 1:
+            action = str(forms[0].get('action'))
             inputs = extract_input_fields(soup)
             print("form action: "+str(forms[0].get('action')))
             formname = forms[0].get('name') or ''
