@@ -29,7 +29,7 @@ def extract_input_fields(soup):
             continue
 
         # for normal inputs
-        if type in ('text', 'hidden', 'password', 'submit', 'image'):
+        if type in ('text', 'hidden', 'password', 'submit', 'image', 'tel'):
             fields[input.get('name')] = input.get('value') or ''
             continue
 
@@ -98,11 +98,13 @@ def main():
     parser.add_argument("url", help="URL to look into")
     parser.add_argument("url2", help="URL to download")
     parser.add_argument("--author",action='store_true', help="Who am I? Why I made this?")
+    parser.add_argument("--mfa",action='store_true', help="mfa login")
     parser.add_argument("-o","--output", help="Output path of file downloaded")
 
     args = parser.parse_args()
     url = args.url
     url2 = args.url2
+    mfa = args.mfa
     
     if args.author:
         get_author()
@@ -114,51 +116,61 @@ def main():
     except:
         print ("Error in getting input")
     else:
+        if mfa:
+            c = 3
+        else:
+            c = 2
         soup = BeautifulSoup(page.content, 'html.parser')
 
-        # We will get forms
-        forms = soup.findAll('form')
-        formcount = len(forms)
+        for x in range(1,c):
+            # We will get forms
+            forms = soup.findAll('form')
+            formcount = len(forms)
 
-        if formcount == 0 and runsqlmap == False:
-            print("URL has no detected forms")
-            quit()
-
-        if formcount == 1:
-            action = str(forms[0].get('action'))
-            inputs = extract_input_fields(soup)
-            print("form action: "+str(forms[0].get('action')))
-            formname = forms[0].get('name') or ''
-            method = forms[0].get('method') or ''
-        else:
-            temp = input("Enter form [1 - " + str(formcount) + "]: ")
-            temp = int(temp)
-            if (temp < 1) or (temp > (formcount)):
-                print("Form is out of range.")
+            if formcount == 0 and runsqlmap == False:
+                print("URL has no detected forms")
                 quit()
-            inputs = extract_input_fields(forms[int(temp)-1])
-            action = str(forms[int(temp)-1].get('action'))
-            print("form action: "+action)
-            formname = forms[int(temp)-1].get('name') or ''
-            method = forms[int(temp)-1].get('method') or ''
 
-        print("form name: "+formname+" ("+method+")")
+            if formcount == 1:
+                action = str(forms[0].get('action'))
+                inputs = extract_input_fields(soup)
+                print("form action: "+str(forms[0].get('action')))
+                formname = forms[0].get('name') or ''
+                method = forms[0].get('method') or ''
+            else:
+                temp = input("Enter form [1 - " + str(formcount) + "]: ")
+                temp = int(temp)
+                if (temp < 1) or (temp > (formcount)):
+                    print("Form is out of range.")
+                    quit()
+                inputs = extract_input_fields(forms[int(temp)-1])
+                action = str(forms[int(temp)-1].get('action'))
+                print("form action: "+action)
+                formname = forms[int(temp)-1].get('name') or ''
+                method = forms[int(temp)-1].get('method') or ''
+
+            print("form name: "+formname+" ("+method+")")
+            
+            print("Getting inputs from ", url, "\r\n")
+            for key,value in inputs.items():
+                if not value: #for empty values we place in values
+                    inputs[key] = input("Enter input for "+key+": ")
+
+            base_url = "{0.scheme}://{0.netloc}".format(urlsplit(url))
+            base_url = base_url+action
+
+            response = my_session.post(base_url, data=inputs)
+            if x==1:
+                print("Going to mfa verification")
+                soup = BeautifulSoup(response.content, 'html.parser')
+                del inputs
+            else:
+                print("Posting then downloading from "+url2)
         
-        print("Getting inputs from ", url, "\r\n")
-        for key,value in inputs.items():
-            if not value: #for empty values we place in values
-                inputs[key] = input("Enter input for "+key+": ")
-
-        print("Posting url then getting file")
-
-        base_url = "{0.scheme}://{0.netloc}".format(urlsplit(url))
-        base_url = base_url+action
-
-        response = my_session.post(base_url, data=inputs)
         # Deleting response
         del response
-        print("Posting then downloading from "+url2)
         response = my_session.get(url2, stream=True)
+        page = response
 
         # Get output filename
         if args.output:
